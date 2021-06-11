@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using svcLoginTracker1.models;
+using MongoDB.Driver;
 
 namespace svcLoginTracker1
 {
@@ -16,7 +17,13 @@ namespace svcLoginTracker1
     {
         //Service Timer Info
         private static System.Timers.Timer m_mainTimer;
-        private static int interval = 5 * 1000; //How often to run in milliseconds (seconds * 1000)
+        private static int interval = 15 * 1000; //How often to run in milliseconds (seconds * 1000)
+        private static string dbconnection = "mongodb://192.168.50.125:27017";
+        private static string dbname = "logins";
+        private static string dbcollection= "events";
+        private static string livepath = @"C:\temp\logins\";
+        private static string archivepath = @"C:\temp\logins\archive\";
+        private static string filename = @"loginsV3.log";
 
         public Service1()
         {
@@ -64,26 +71,29 @@ namespace svcLoginTracker1
 
         private void Routine()
         {
-            ParseEvents();
+            var events = ParseEvents(livepath, archivepath, filename);
+
+            WriteEvents(events);
         }
 
-        private void ParseEvents()
+        private List<Login> ParseEvents(string LivePath, string ArchivePath, string Filename)
         {
-            var logins = new List<Login>();
-            var path = @"C:\temp\logins\loginsV3.log";
-            var tempPath = @"C:\temp\logins\tempfile";
+            var logins = new List<Login>(); //Create a list of login events to return
+            var livefile = LivePath + Filename;
+            var tempfile = LivePath + "tempfile";
+            var archivefile = ArchivePath + DateTime.Now.ToString() + @"\tempfile";
 
             try
             {
-                if (File.Exists(path))
+                if (File.Exists(LivePath + Filename))
                 {
-                    //Rename the log file so new events can be written
-                    System.IO.File.Move(path, tempPath);
+                    //Rename the log file so new events can be written to a fresh file
+                    System.IO.File.Move(livefile, tempfile);
 
-                    //Parse the new tempfile
-                    var file = File.ReadAllLines(tempPath);
+                    //Parse the new tempfile for events
+                    var file = File.ReadAllLines(tempfile);
 
-                    //Iterate through each event
+                    //Iterate through each event to create a login object for each one
                     foreach (var line in file)
                     {
                         var fields = line.Split(' ');
@@ -106,18 +116,27 @@ namespace svcLoginTracker1
                             DomainController = domaincontroller,
                             Gateway = gateway
                         };
-                        logins.Add(login);
+                        logins.Add(login); //Add the login object to the list
                     }
+
+                    //Move and rename the tempfile to the archive folder
+                    System.IO.File.Copy(tempfile, archivefile);
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
+            return logins; //return the list of logins
         }
 
         private DateTime ConvertTimestamp(string filetimestamp)
         {
+
+            //This function is here because I concatenated a string to represent the date
+            //and time on the client end and it ended up being a pain to parse on this end...
+
             var dt = filetimestamp.Replace("::", ",").Split(',');
             var date = dt[0].Split('-');
             var time = dt[1].Split(':');
@@ -134,5 +153,62 @@ namespace svcLoginTracker1
 
             return timestamp;
         }
+
+        private void WriteEvents(List<Login> Logins)
+        {
+            
+            foreach(var login in Logins)
+            {
+                try
+                {
+                    if(!CheckForDupe(login))
+                        WriteEvent(login);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+        }
+
+        private void WriteEvent(Login Login)
+        {
+            try
+            {
+                var dbClient = new MongoClient(dbconnection);
+                var database = dbClient.GetDatabase(dbname);
+                var collection = database.GetCollection<Login>(dbcollection);
+
+                collection.InsertOne(Login);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private bool CheckForDupe(Login Login)
+        {
+            try
+            {
+                var dbClient = new MongoClient(dbconnection);
+                var database = dbClient.GetDatabase(dbname);
+                var collection = database.GetCollection<Login>(dbcollection);
+
+                var found = collection.AsQueryable()
+                    .Where(l => l.Timestamp == Login.Timestamp && l.LoginType == Login.LoginType && l.Username == Login.Username && l.Machine == Login.Machine).FirstOrDefault();
+
+                if (found != null)
+                    return true;
+                else
+                    return false;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return false;
+            }
+        }
+
     }
 }
