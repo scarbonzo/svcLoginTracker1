@@ -1,0 +1,7 @@
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\bin\Debug\svcLoginTracker1.exe.config
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\bin\Debug\svcLoginTracker1.exe
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\bin\Debug\svcLoginTracker1.pdb
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\obj\Debug\svcLoginTracker1.csprojAssemblyReference.cache
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\obj\Debug\svcLoginTracker1.csproj.CoreCompileInputs.cache
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\obj\Debug\svcLoginTracker1.exe
+E:\Code\windows\svcLoginTracker1\svcLoginTracker1\obj\Debug\svcLoginTracker1.pdb
