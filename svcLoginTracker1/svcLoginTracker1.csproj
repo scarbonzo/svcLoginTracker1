@@ -120,6 +120,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="configuration.cs" />
     <Compile Include="models\Login.cs" />
     <Compile Include="Service1.cs">
       <SubType>Component</SubType>

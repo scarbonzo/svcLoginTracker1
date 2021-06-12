@@ -18,13 +18,7 @@ namespace svcLoginTracker1
         //Service Timer Info
         private static System.Timers.Timer m_mainTimer;
         private static int interval = 15 * 1000; //How often to run in milliseconds (seconds * 1000)
-        private static string dbconnection = "mongodb://192.168.50.125:27017";
-        private static string dbname = "logins";
-        private static string dbcollection= "events";
-        private static string livepath = @"C:\temp\logins\";
-        private static string archivepath = @"C:\temp\logins\archive\";
-        private static string filename = @"loginsV3.log";
-
+        
         public Service1()
         {
             InitializeComponent();
@@ -71,7 +65,7 @@ namespace svcLoginTracker1
 
         private void Routine()
         {
-            var events = ParseEvents(livepath, archivepath, filename);
+            var events = ParseEvents(configuration.livepath, configuration.archivepath, configuration.filename);
 
             WriteEvents(events);
         }
@@ -81,7 +75,7 @@ namespace svcLoginTracker1
             var logins = new List<Login>(); //Create a list of login events to return
             var livefile = LivePath + Filename;
             var tempfile = LivePath + "tempfile";
-            var archivefile = ArchivePath + DateTime.Now.ToString() + @"\tempfile";
+            var archivefile = ArchivePath + DateTime.Now.ToString(@"yyyy-MM-dd-HH-mm-ss") + ".log";
 
             try
             {
@@ -120,7 +114,7 @@ namespace svcLoginTracker1
                     }
 
                     //Move and rename the tempfile to the archive folder
-                    System.IO.File.Copy(tempfile, archivefile);
+                    System.IO.File.Move(tempfile, archivefile);
                 }
             }
             catch (Exception e)
@@ -175,9 +169,9 @@ namespace svcLoginTracker1
         {
             try
             {
-                var dbClient = new MongoClient(dbconnection);
-                var database = dbClient.GetDatabase(dbname);
-                var collection = database.GetCollection<Login>(dbcollection);
+                var dbClient = new MongoClient(configuration.dbconnection);
+                var database = dbClient.GetDatabase(configuration.dbname);
+                var collection = database.GetCollection<Login>(configuration.dbcollection);
 
                 collection.InsertOne(Login);
             }
@@ -191,9 +185,9 @@ namespace svcLoginTracker1
         {
             try
             {
-                var dbClient = new MongoClient(dbconnection);
-                var database = dbClient.GetDatabase(dbname);
-                var collection = database.GetCollection<Login>(dbcollection);
+                var dbClient = new MongoClient(configuration.dbconnection);
+                var database = dbClient.GetDatabase(configuration.dbname);
+                var collection = database.GetCollection<Login>(configuration.dbcollection);
 
                 var found = collection.AsQueryable()
                     .Where(l => l.Timestamp == Login.Timestamp && l.LoginType == Login.LoginType && l.Username == Login.Username && l.Machine == Login.Machine).FirstOrDefault();
